@@ -1,0 +1,104 @@
+# ==============================================================================
+# BuildSync — Production Application Configuration Profile (prod)
+# Activate using: SPRING_PROFILES_ACTIVE=prod
+# ==============================================================================
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  application:
+    name: BuildSync
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 6MB
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: BuildSyncHikariProdPool
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 5000
+      validation-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+# BuildSync Production Hardened Configurations
+buildsync:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:900}
+    cookie:
+      secure: true
+      same-site: Lax
+    refresh-token:
+      normal-days: 7
+      remember-me-days: 30
+  storage:
+    upload-dir: ${STORAGE_UPLOAD_DIR:/var/buildsync/uploads}
+    avatar-dir: ${STORAGE_AVATAR_SUBDIR:avatars}
+    max-file-size-bytes: 5242880
+    min-dimension: 32
+    max-dimension: 4096
+  github:
+    app-client-id: ${GITHUB_APP_CLIENT_ID}
+    app-client-secret: ${GITHUB_APP_CLIENT_SECRET}
+    callback-url: ${GITHUB_APP_CALLBACK_URL}
+    frontend-redirect-url: ${GITHUB_FRONTEND_REDIRECT_URL}
+    token-encryption-key: ${GITHUB_TOKEN_ENCRYPTION_KEY}
+    api-base-url: ${GITHUB_API_BASE_URL:https://api.github.com}
+    oauth-base-url: ${GITHUB_OAUTH_BASE_URL:https://github.com/login/oauth}
+  rate-limit:
+    enabled: true
+    storage: redis
+    trusted-proxy-enabled: ${TRUSTED_PROXY_ENABLED:true}
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout-ms: ${REDIS_TIMEOUT_MS:2000}
+
+# Hardened logging configuration (No SQL or sensitive debug output)
+logging:
+  level:
+    root: WARN
+    com.buildsync: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+

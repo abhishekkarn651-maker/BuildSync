@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  /* Cyber Ember Red (#05) — Light Mode Palette */
+  --background: #FAFAFA;
+  --card: #FFFFFF;
+  --surface: #F5F5F5;
+  --surface-hover: #ECECEC;
+
+  --primary: #EF4444;
+  --secondary: #DC2626;
+  --primary-subtle: rgba(239, 68, 68, 0.08);
+  --primary-border: rgba(239, 68, 68, 0.2);
+
+  --foreground: #171717;
+  --muted: #737373;
+  --muted-foreground: #525252;
+
+  --border: #E5E5E5;
+  --border-subtle: #F0F0F0;
+}
+
+.dark {
+  /* Cyber Ember Red (#05) — Dark Mode Palette */
+  --background: #0A0A0A;
+  --card: #1F1F1F;
+  --surface: #262626;
+  --surface-hover: #2D2D2D;
+
+  --primary: #EF4444;
+  --secondary: #F97373;
+  --primary-subtle: rgba(239, 68, 68, 0.12);
+  --primary-border: rgba(239, 68, 68, 0.25);
+
+  --foreground: #F8FAFC;
+  --muted: #A1A1AA;
+  --muted-foreground: #D4D4D8;
+
+  --border: #292929;
+  --border-subtle: #222222;
+}
+
+/* Custom Semantic Utility Classes matching Cyber Ember Red */
+.bg-background { background-color: var(--background); }
+.bg-card { background-color: var(--card); }
+.bg-surface { background-color: var(--surface); }
+.bg-surface-hover { background-color: var(--surface-hover); }
+
+.text-foreground { color: var(--foreground); }
+.text-muted { color: var(--muted); }
+.text-muted-foreground { color: var(--muted-foreground); }
+
+.border-border { border-color: var(--border); }
+.border-border-subtle { border-color: var(--border-subtle); }
+
+.bg-primary-red { background-color: var(--primary); }
+.text-primary-red { color: var(--primary); }
+.border-primary-red { border-color: var(--primary); }
+
+.bg-primary-subtle { background-color: var(--primary-subtle); }
+.border-primary-subtle { border-color: var(--primary-border); }
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}

@@ -1,0 +1,149 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  application:
+    name: BuildSync
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 6MB
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/buildsync_db}
+    username: ${DB_USERNAME:buildsync_app}
+    password: ${DB_PASSWORD:buildsync_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 3000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      validation-timeout: 2000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# BuildSync Specific Configurations
+buildsync:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  security:
+    jwt:
+      secret: ${JWT_SECRET:buildsync-cyber-ember-red-jwt-secret-key-at-least-256-bits-long-32-bytes!}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:900}
+    cookie:
+      secure: ${COOKIE_SECURE:false}
+      same-site: ${COOKIE_SAME_SITE:Lax}
+    refresh-token:
+      normal-days: ${REFRESH_TOKEN_NORMAL_DAYS:7}
+      remember-me-days: ${REFRESH_TOKEN_REMEMBER_ME_DAYS:30}
+  storage:
+    upload-dir: ${STORAGE_UPLOAD_DIR:uploads}
+    avatar-dir: ${STORAGE_AVATAR_SUBDIR:avatars}
+    max-file-size-bytes: 5242880
+    min-dimension: 32
+    max-dimension: 4096
+  github:
+    app-client-id: ${GITHUB_APP_CLIENT_ID:dummy-github-client-id}
+    app-client-secret: ${GITHUB_APP_CLIENT_SECRET:dummy-github-client-secret}
+    callback-url: ${GITHUB_APP_CALLBACK_URL:http://localhost:8080/api/v1/integrations/github/callback}
+    frontend-redirect-url: ${GITHUB_FRONTEND_REDIRECT_URL:http://localhost:3000/settings/integrations/github}
+    token-encryption-key: ${GITHUB_TOKEN_ENCRYPTION_KEY:buildsync-aes-gcm-256bit-secret-key-32bytes!}
+    api-base-url: ${GITHUB_API_BASE_URL:https://api.github.com}
+    oauth-base-url: ${GITHUB_OAUTH_BASE_URL:https://github.com/login/oauth}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    storage: ${RATE_LIMIT_STORAGE:memory} # memory | redis
+    trusted-proxy-enabled: ${TRUSTED_PROXY_ENABLED:false}
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout-ms: ${REDIS_TIMEOUT_MS:2000}
+    policies:
+      general-authenticated:
+        capacity: 120
+        refill-tokens: 120
+        refill-period-seconds: 60
+      general-anonymous:
+        capacity: 60
+        refill-tokens: 60
+        refill-period-seconds: 60
+      auth-login:
+        capacity: 10
+        refill-tokens: 10
+        refill-period-seconds: 300
+      auth-register:
+        capacity: 5
+        refill-tokens: 5
+        refill-period-seconds: 3600
+      auth-refresh:
+        capacity: 30
+        refill-tokens: 30
+        refill-period-seconds: 900
+      search-developers:
+        capacity: 60
+        refill-tokens: 60
+        refill-period-seconds: 60
+      search-projects:
+        capacity: 60
+        refill-tokens: 60
+        refill-period-seconds: 60
+      avatar-upload:
+        capacity: 10
+        refill-tokens: 10
+        refill-period-seconds: 3600
+      collaboration-actions:
+        capacity: 20
+        refill-tokens: 20
+        refill-period-seconds: 60
+      direct-messaging:
+        capacity: 30
+        refill-tokens: 30
+        refill-period-seconds: 60
+      project-group-messaging:
+        capacity: 30
+        refill-tokens: 30
+        refill-period-seconds: 60
+      websocket-connect:
+        capacity: 10
+        refill-tokens: 10
+        refill-period-seconds: 60
+      typing-events:
+        capacity: 60
+        refill-tokens: 60
+        refill-period-seconds: 60
+      github-sync:
+        capacity: 5
+        refill-tokens: 5
+        refill-period-seconds: 3600
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.buildsync: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO

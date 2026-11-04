@@ -1,0 +1,95 @@
+# ==============================================================================
+# BuildSync - Root .gitignore
+# ==============================================================================
+
+# OS & Environment Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+
+# Secrets and Local Environment Configurations
+*.env
+*.env.local
+*.env.*.local
+!*.env.example
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ------------------------------------------------------------------------------
+# Frontend (Next.js / Node)
+# ------------------------------------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# Backend (Java / Spring Boot / Maven)
+# ------------------------------------------------------------------------------
+backend/target/
+backend/bin/
+backend/*.class
+backend/*.jar
+backend/*.war
+backend/*.ear
+backend/*.log
+backend/logs/
+
+# Maven Wrapper runtime directory (keep the wrapper scripts and properties)
+!backend/.mvn/wrapper/maven-wrapper.properties
+!backend/.mvn/wrapper/maven-wrapper.jar
+!backend/mvnw
+!backend/mvnw.cmd
+
+# ------------------------------------------------------------------------------
+# Database & Local Run Artifacts
+# ------------------------------------------------------------------------------
+database/data/
+backend/uploads/
+uploads/
+*.sql.bak
+*.dump
+
+# Build artifacts
+**/target/
+**/.next/
+**/node_modules/
+**/dist/
+**/out/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Uploaded media
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+

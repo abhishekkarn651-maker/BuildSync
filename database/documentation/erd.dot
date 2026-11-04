@@ -1,0 +1,54 @@
+digraph BuildSyncERD {
+  graph [rankdir=LR, bgcolor="#F7F9FC", pad="0.35", nodesep="0.42", ranksep="0.95", splines=polyline, fontname="Arial", labelloc="t", label="BUILDSYNC — DATABASE ER DIAGRAM (V1)", fontsize=22, fontcolor="#172B4D", compound=true];
+  node [shape=plain, fontname="Arial"];
+  edge [fontname="Arial", fontsize=9, color="#60758A", penwidth=1.15, arrowsize=0.7, labelfontcolor="#42566B"];
+
+  subgraph cluster_identity {
+    label="IDENTITY & DEVELOPER PROFILE"; fontsize=12; fontname="Arial Bold"; fontcolor="#315A8C"; color="#B9CDE8"; style="rounded,filled"; fillcolor="#F1F6FD";
+    USERS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#9BB5D4"><TR><TD BGCOLOR="#DDEBFF"><B>USERS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> email</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> username</TD></TR><TR><TD ALIGN="LEFT">password_hash</TD></TR><TR><TD ALIGN="LEFT">system_role, account_status</TD></TR><TR><TD ALIGN="LEFT">email_verified_at</TD></TR><TR><TD ALIGN="LEFT">created_at, updated_at</TD></TR></TABLE>>];
+    PROFILES [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#9BB5D4"><TR><TD BGCOLOR="#DDEBFF"><B>DEVELOPER_PROFILES</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT">full_name, bio</TD></TR><TR><TD ALIGN="LEFT">avatar_key, location</TD></TR><TR><TD ALIGN="LEFT">education, experience_level</TD></TR><TR><TD ALIGN="LEFT">portfolio_url, linkedin_url</TD></TR><TR><TD ALIGN="LEFT">created_at, updated_at</TD></TR></TABLE>>];
+    GITHUB [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#9BB5D4"><TR><TD BGCOLOR="#DDEBFF"><B>GITHUB_CONNECTIONS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>UK/FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> github_user_id</TD></TR><TR><TD ALIGN="LEFT">github_username</TD></TR><TR><TD ALIGN="LEFT">access_token_encrypted</TD></TR><TR><TD ALIGN="LEFT">refresh_token_encrypted, expires_at</TD></TR><TR><TD ALIGN="LEFT">connected_at</TD></TR></TABLE>>];
+    REFRESH [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#9BB5D4"><TR><TD BGCOLOR="#DDEBFF"><B>REFRESH_TOKENS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> token_hash</TD></TR><TR><TD ALIGN="LEFT">expires_at, revoked_at</TD></TR><TR><TD ALIGN="LEFT">created_at</TD></TR></TABLE>>];
+  }
+
+  subgraph cluster_catalog_projects {
+    label="SKILLS & PROJECTS"; fontsize=12; fontname="Arial Bold"; fontcolor="#24735D"; color="#B6DCCF"; style="rounded,filled"; fillcolor="#F0F8F5";
+    SKILLS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>SKILLS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> name / slug</TD></TR><TR><TD ALIGN="LEFT">category</TD></TR></TABLE>>];
+    DEVSKILLS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>DEVELOPER_SKILLS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> skill_id</TD></TR><TR><TD ALIGN="LEFT">proficiency_level</TD></TR><TR><TD ALIGN="LEFT">years_experience</TD></TR></TABLE>>];
+    PROJECTS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>PROJECTS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> created_by</TD></TR><TR><TD ALIGN="LEFT"><B>UK</B> slug</TD></TR><TR><TD ALIGN="LEFT">title, category</TD></TR><TR><TD ALIGN="LEFT">short_description, description</TD></TR><TR><TD ALIGN="LEFT">status, visibility</TD></TR><TR><TD ALIGN="LEFT">github_repo_url, live_demo_url</TD></TR><TR><TD ALIGN="LEFT">created_at, updated_at</TD></TR></TABLE>>];
+    PROJECTTECH [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>PROJECT_TECHNOLOGIES</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> project_id</TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> skill_id</TD></TR></TABLE>>];
+    PROJECTMEDIA [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>PROJECT_MEDIA</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> project_id</TD></TR><TR><TD ALIGN="LEFT">storage_key, media_type</TD></TR><TR><TD ALIGN="LEFT">alt_text, sort_order</TD></TR></TABLE>>];
+    MEMBERS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#8FBEAC"><TR><TD BGCOLOR="#DDF3E9"><B>PROJECT_MEMBERS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> project_id</TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT">role (OWNER / MEMBER)</TD></TR><TR><TD ALIGN="LEFT">joined_at</TD></TR></TABLE>>];
+  }
+
+  subgraph cluster_collaboration_chat {
+    label="COLLABORATION, NOTIFICATIONS & CHAT"; fontsize=12; fontname="Arial Bold"; fontcolor="#8A5A20"; color="#E7D0AE"; style="rounded,filled"; fillcolor="#FCF7F0";
+    REQUESTS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#D6B88E"><TR><TD BGCOLOR="#FFF0D9"><B>COLLABORATION_REQUESTS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> project_id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> sender_id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> recipient_id</TD></TR><TR><TD ALIGN="LEFT">message, status</TD></TR><TR><TD ALIGN="LEFT">created_at, responded_at</TD></TR></TABLE>>];
+    NOTIFICATIONS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#D6B88E"><TR><TD BGCOLOR="#FFF0D9"><B>NOTIFICATIONS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> recipient_id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> actor_id (nullable)</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> collaboration_request_id (nullable)</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> project_id (nullable)</TD></TR><TR><TD ALIGN="LEFT">type, payload</TD></TR><TR><TD ALIGN="LEFT">read_at, created_at</TD></TR></TABLE>>];
+    CONVERSATIONS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#D6B88E"><TR><TD BGCOLOR="#FFF0D9"><B>CONVERSATIONS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK/UK</B> project_id (nullable)</TD></TR><TR><TD ALIGN="LEFT">type (DIRECT / PROJECT)</TD></TR><TR><TD ALIGN="LEFT">direct_pair_key (nullable, UK)</TD></TR><TR><TD ALIGN="LEFT">created_at</TD></TR></TABLE>>];
+    CONVMEMBERS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#D6B88E"><TR><TD BGCOLOR="#FFF0D9"><B>CONVERSATION_MEMBERS</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> conversation_id</TD></TR><TR><TD ALIGN="LEFT"><B>PK/FK</B> user_id</TD></TR><TR><TD ALIGN="LEFT">joined_at, last_read_at</TD></TR></TABLE>>];
+    MESSAGES [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#D6B88E"><TR><TD BGCOLOR="#FFF0D9"><B>MESSAGES</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> conversation_id</TD></TR><TR><TD ALIGN="LEFT"><B>FK</B> sender_id</TD></TR><TR><TD ALIGN="LEFT">body</TD></TR><TR><TD ALIGN="LEFT">created_at, edited_at, deleted_at</TD></TR></TABLE>>];
+  }
+
+  USERS -> PROFILES [label="1 : 1"];
+  USERS -> GITHUB [label="1 : 0..1"];
+  USERS -> REFRESH [label="1 : N"];
+  USERS -> DEVSKILLS [label="1 : N"];
+  SKILLS -> DEVSKILLS [label="1 : N"];
+  USERS -> PROJECTS [label="creator 1 : N"];
+  PROJECTS -> PROJECTTECH [label="1 : N"];
+  SKILLS -> PROJECTTECH [label="1 : N"];
+  PROJECTS -> PROJECTMEDIA [label="1 : N"];
+  PROJECTS -> MEMBERS [label="1 : N"];
+  USERS -> MEMBERS [label="1 : N"];
+  PROJECTS -> REQUESTS [label="1 : N"];
+  USERS -> REQUESTS [label="sender / recipient", dir=both, arrowtail=none, arrowhead=none, style=dashed];
+  USERS -> NOTIFICATIONS [label="recipient / actor", dir=both, arrowtail=none, arrowhead=none, style=dashed];
+  REQUESTS -> NOTIFICATIONS [label="0..1 request per notification", style=dashed];
+  PROJECTS -> NOTIFICATIONS [label="0..1 project per notification", style=dashed];
+  PROJECTS -> CONVERSATIONS [label="1 : 0..1 project room"];
+  CONVERSATIONS -> CONVMEMBERS [label="1 : N"];
+  USERS -> CONVMEMBERS [label="1 : N"];
+  CONVERSATIONS -> MESSAGES [label="1 : N"];
+  USERS -> MESSAGES [label="sender 1 : N"];
+}
