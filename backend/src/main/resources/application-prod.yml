@@ -58,22 +58,25 @@ management:
 buildsync:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
   security:
     jwt:
       secret: ${JWT_SECRET}
       expiration-seconds: ${JWT_EXPIRATION_SECONDS:900}
     cookie:
-  secure: true
-  same-site: None
+      secure: true
+      same-site: None
     refresh-token:
       normal-days: 7
       remember-me-days: 30
+
   storage:
     upload-dir: ${STORAGE_UPLOAD_DIR:/var/buildsync/uploads}
     avatar-dir: ${STORAGE_AVATAR_SUBDIR:avatars}
     max-file-size-bytes: 5242880
     min-dimension: 32
     max-dimension: 4096
+
   github:
     app-client-id: ${GITHUB_APP_CLIENT_ID}
     app-client-secret: ${GITHUB_APP_CLIENT_SECRET}
@@ -82,18 +85,9 @@ buildsync:
     token-encryption-key: ${GITHUB_TOKEN_ENCRYPTION_KEY}
     api-base-url: ${GITHUB_API_BASE_URL:https://api.github.com}
     oauth-base-url: ${GITHUB_OAUTH_BASE_URL:https://github.com/login/oauth}
-  rate-limit:
-  enabled: true
-  storage: memory
-  trusted-proxy-enabled: ${TRUSTED_PROXY_ENABLED:true}
 
-# Hardened logging configuration (No SQL or sensitive debug output)
-logging:
-  level:
-    root: WARN
-    com.buildsync: INFO
-    org.springframework.web: WARN
-    org.springframework.security: WARN
-    org.hibernate: WARN
-    org.hibernate.SQL: WARN
+  rate-limit:
+    enabled: true
+    storage: memory
+    trusted-proxy-enabled: ${TRUSTED_PROXY_ENABLED:true}
 
