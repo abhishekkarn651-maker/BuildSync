@@ -77,6 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshSession]);
 
+  // Synchronize AuthContext if token is cleared externally (e.g. 401 refresh failure in apiClient)
+  useEffect(() => {
+    const unsubscribe = tokenStore.subscribe((token) => {
+      if (!token && status === 'authenticated') {
+        setUser(null);
+        setStatus('unauthenticated');
+      }
+    });
+    return unsubscribe;
+  }, [status]);
+
   const login = async (payload: LoginPayload): Promise<AuthResponse> => {
     setStatus('loading');
     try {

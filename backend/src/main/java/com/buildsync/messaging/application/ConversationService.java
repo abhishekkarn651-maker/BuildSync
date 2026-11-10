@@ -195,11 +195,15 @@ public class ConversationService {
         List<ConversationParticipantSummary> participantSummaries = participants.stream()
                 .map(p -> {
                     DeveloperProfile prof = profileRepository.findByUserId(p.getUser().getId()).orElse(null);
+                    String name = p.getUser().getFullName();
+                    if (name == null || name.isBlank()) {
+                        name = p.getUser().getUsername();
+                    }
                     return new ConversationParticipantSummary(
                             p.getId(),
                             p.getUser().getId(),
                             p.getUser().getUsername(),
-                            p.getUser().getFullName(),
+                            name,
                             prof != null ? prof.getAvatarUrl() : null,
                             p.getJoinedAt(),
                             p.getLastReadAt()
@@ -305,10 +309,14 @@ public class ConversationService {
 
             if (otherUser != null) {
                 DeveloperProfile prof = profileRepository.findByUserId(otherUser.getId()).orElse(null);
+                String name = otherUser.getFullName();
+                if (name == null || name.isBlank()) {
+                    name = otherUser.getUsername();
+                }
                 otherParticipant = new MessageSenderSummary(
                         otherUser.getId(),
                         otherUser.getUsername(),
-                        otherUser.getFullName(),
+                        name,
                         prof != null ? prof.getAvatarUrl() : null,
                         prof != null ? prof.getHeadline() : null
                 );

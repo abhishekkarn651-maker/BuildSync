@@ -146,11 +146,15 @@ public class MessageService {
     private MessageResponse mapToResponse(Message message) {
         User sender = message.getSender();
         DeveloperProfile profile = profileRepository.findByUserId(sender.getId()).orElse(null);
+        String name = sender.getFullName();
+        if (name == null || name.isBlank()) {
+            name = sender.getUsername();
+        }
 
         MessageSenderSummary senderSummary = new MessageSenderSummary(
                 sender.getId(),
                 sender.getUsername(),
-                sender.getFullName(),
+                name,
                 profile != null ? profile.getAvatarUrl() : null,
                 profile != null ? profile.getHeadline() : null
         );

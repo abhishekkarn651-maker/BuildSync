@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/config/api.config';
-import { apiClient } from './api-client';
+import { apiClient, performSilentRefresh, ApiError } from './api-client';
 import { tokenStore } from './token-store';
 import {
   AuthResponse,
@@ -54,21 +54,13 @@ export const authService = {
 
   /**
    * Silent session refresh using HttpOnly cookie.
+   * Centralized via performSilentRefresh() so AuthContext and apiClient share the exact same in-flight refresh.
    */
   async refresh(): Promise<AuthResponse> {
-    const response = await apiClient<AuthResponse>(
-      API_CONFIG.endpoints.auth.refresh,
-      {
-        method: 'POST',
-        skipAuth: true,
-        skipRefreshRetry: true,
-      }
-    );
-
-    if (response?.accessToken) {
-      tokenStore.setAccessToken(response.accessToken);
+    const response = await performSilentRefresh();
+    if (!response || !response.accessToken) {
+      throw new ApiError('Failed to refresh authentication session', 401);
     }
-
     return response;
   },
 

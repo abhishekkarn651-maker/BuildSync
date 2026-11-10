@@ -93,7 +93,25 @@ export function subscribeToConversation(
       `/topic/conversations/${conversationId}`,
       (message: IMessage) => {
         try {
-          const payload = JSON.parse(message.body) as MessageItem;
+          const raw = JSON.parse(message.body);
+          const uid = raw?.sender?.userId || raw?.sender?.id || '';
+          const sender = raw?.sender
+            ? {
+                ...raw.sender,
+                userId: uid,
+                id: raw.sender.id || uid,
+                fullName: raw.sender.fullName || raw.sender.username || 'User',
+              }
+            : {
+                userId: '',
+                username: 'User',
+                fullName: 'User',
+                avatarUrl: null,
+              };
+          const payload: MessageItem = {
+            ...raw,
+            sender,
+          };
           onMessage(payload);
         } catch (e) {
           console.error('Failed to parse incoming chat message payload', e);

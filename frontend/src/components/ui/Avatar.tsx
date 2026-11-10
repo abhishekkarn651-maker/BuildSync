@@ -2,8 +2,8 @@ import React from 'react';
 import Image from 'next/image';
 
 export interface AvatarProps {
-  src?: string;
-  name: string;
+  src?: string | null;
+  name?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   isOnline?: boolean;
   className?: string;
@@ -24,15 +24,23 @@ export function Avatar({
     xl: { container: 'w-20 h-20 text-xl font-bold', px: 80, dot: 'w-3.5 h-3.5' },
   };
 
-  const getInitials = (n: string) => {
-    const parts = n.trim().split(/\s+/);
-    if (parts.length >= 2) {
+  const getInitials = (n?: string | null): string => {
+    if (!n || typeof n !== 'string') {
+      return 'U';
+    }
+    const trimmed = n.trim();
+    if (!trimmed) {
+      return 'U';
+    }
+    const parts = trimmed.split(/\s+/);
+    if (parts.length >= 2 && parts[0] && parts[1]) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return n.slice(0, 2).toUpperCase();
+    return trimmed.slice(0, 2).toUpperCase();
   };
 
   const current = sizeMap[size];
+  const safeName = name && typeof name === 'string' && name.trim() ? name.trim() : 'User';
 
   return (
     <div className={`relative inline-block shrink-0 select-none ${className}`}>
@@ -42,7 +50,7 @@ export function Avatar({
         {src ? (
           <Image
             src={src}
-            alt={name}
+            alt={safeName}
             width={current.px}
             height={current.px}
             className="w-full h-full object-cover"
@@ -63,4 +71,3 @@ export function Avatar({
     </div>
   );
 }
-

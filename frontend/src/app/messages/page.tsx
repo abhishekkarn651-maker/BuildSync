@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -61,7 +62,7 @@ function formatConversationTime(dateString: string): string {
 
 function MessagesContent() {
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, status, isAuthenticated } = useAuth();
 
   // URL Query Parameters
   const paramConvId = searchParams.get('conversationId');
@@ -102,6 +103,7 @@ function MessagesContent() {
   // Real-Time STOMP Callbacks
   const handleIncomingMessage = useCallback(
     (msg: MessageItem) => {
+      const msgSenderId = msg.sender.userId || msg.sender.id;
       // 1. If incoming message belongs to active conversation, append or reconcile
       if (msg.conversationId === activeConvId) {
         setMessages((prev) => {
@@ -110,7 +112,7 @@ function MessagesContent() {
             (m) =>
               m.id === msg.id ||
               (m.optimistic &&
-                m.sender.userId === msg.sender.userId &&
+                (m.sender.userId || m.sender.id) === msgSenderId &&
                 m.content === msg.content)
           );
           if (existingIndex !== -1) {
@@ -151,7 +153,7 @@ function MessagesContent() {
           unreadCount:
             msg.conversationId === activeConvId
               ? 0
-              : existing.unreadCount + (msg.sender.userId === user?.id ? 0 : 1),
+              : existing.unreadCount + (msgSenderId === user?.id ? 0 : 1),
         };
 
         const remaining = prev.filter((c) => c.id !== msg.conversationId);
@@ -207,6 +209,10 @@ function MessagesContent() {
   // Load conversations on mount & handle URL query parameters
   useEffect(() => {
     let isMounted = true;
+
+    if (status !== 'authenticated' || !isAuthenticated) {
+      return;
+    }
 
     async function initConversations() {
       setIsLoadingConversations(true);
@@ -287,12 +293,12 @@ function MessagesContent() {
     return () => {
       isMounted = false;
     };
-  }, [paramConvId, paramUser, paramProject]);
+  }, [status, isAuthenticated, paramConvId, paramUser, paramProject]);
 
   // Load message history & conversation detail when active conversation changes
   useEffect(() => {
     let isMounted = true;
-    if (!activeConvId) {
+    if (!activeConvId || status !== 'authenticated' || !isAuthenticated) {
       return;
     }
 
@@ -333,7 +339,7 @@ function MessagesContent() {
     return () => {
       isMounted = false;
     };
-  }, [activeConvId, scrollToBottom]);
+  }, [activeConvId, status, isAuthenticated, scrollToBottom]);
 
   // Handle typing input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
@@ -375,9 +381,10 @@ function MessagesContent() {
       id: tempId,
       conversationId: activeConvId,
       sender: {
+        id: user.id,
         userId: user.id,
         username: user.username,
-        fullName: user.fullName || user.username,
+        fullName: user.fullName || user.username || 'You',
         avatarUrl: user.avatarUrl || null,
       },
       content,
@@ -477,8 +484,9 @@ function MessagesContent() {
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    const directName = c.directParticipant?.fullName?.toLowerCase() || '';
-    const directUser = c.directParticipant?.username?.toLowerCase() || '';
+    const participant = c.directParticipant || c.otherParticipant;
+    const directName = participant?.fullName?.toLowerCase() || '';
+    const directUser = participant?.username?.toLowerCase() || '';
     const projectName = c.project?.title?.toLowerCase() || '';
     const lastMsg = c.lastMessage?.content?.toLowerCase() || '';
     return (
@@ -612,10 +620,11 @@ function MessagesContent() {
             ) : (
               filteredConversations.map((conv) => {
                 const isActive = conv.id === activeConvId;
-                const isProject = conv.type === 'PROJECT';
+                const isProject = conv.type === 'PROJECT' || conv.conversationType === 'PROJECT';
+                const participant = conv.directParticipant || conv.otherParticipant;
                 const displayName = isProject
-                  ? conv.project?.title || conv.name
-                  : conv.directParticipant?.fullName || conv.directParticipant?.username || conv.name;
+                  ? conv.project?.title || conv.name || 'Project Room'
+                  : participant?.fullName || participant?.username || conv.name || 'Developer';
 
                 return (
                   <button
@@ -637,7 +646,7 @@ function MessagesContent() {
                       </div>
                     ) : (
                       <Avatar
-                        src={getAvatarUrl(conv.directParticipant?.avatarUrl)}
+                        src={getAvatarUrl(participant?.avatarUrl)}
                         name={displayName}
                         size="md"
                       />
@@ -714,63 +723,80 @@ function MessagesContent() {
                     <ArrowLeft className="w-5 h-5" />
                   </button>
 
-                  {activeConversation.type === 'PROJECT' ? (
-                    <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-[#EF4444] shrink-0">
-                      <FolderGit2 className="w-5 h-5" />
-                    </div>
-                  ) : (
-                    <Avatar
-                      src={getAvatarUrl(activeConversation.directParticipant?.avatarUrl)}
-                      name={activeConversation.directParticipant?.fullName || activeConversation.directParticipant?.username || 'User'}
-                      size="sm"
-                    />
-                  )}
+                  {(() => {
+                    const isActiveProject = activeConversation.type === 'PROJECT' || activeConversation.conversationType === 'PROJECT';
+                    const activeParticipant = activeConversation.directParticipant || activeConversation.otherParticipant;
+                    const activeDisplayName = isActiveProject
+                      ? activeConversation.project?.title || activeConversation.name || 'Project Room'
+                      : activeParticipant?.fullName || activeParticipant?.username || activeConversation.name || 'Developer';
 
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2 truncate">
-                      <span>
-                        {activeConversation.type === 'PROJECT'
-                          ? activeConversation.project?.title || activeConversation.name
-                          : activeConversation.directParticipant?.fullName || activeConversation.directParticipant?.username}
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-muted truncate">
-                      {activeConversation.type === 'PROJECT' ? (
-                        <span className="flex items-center gap-1.5 text-muted">
-                          <Users className="w-3 h-3 text-[#EF4444]" />
-                          <span>Team Chat</span>
-                          {activeConvDetail?.participants && (
-                            <span>• {activeConvDetail.participants.length} members</span>
-                          )}
-                        </span>
-                      ) : (
-                        <span>@{activeConversation.directParticipant?.username}</span>
-                      )}
-                    </p>
-                  </div>
+                    return (
+                      <>
+                        {isActiveProject ? (
+                          <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-[#EF4444] shrink-0">
+                            <FolderGit2 className="w-5 h-5" />
+                          </div>
+                        ) : (
+                          <Avatar
+                            src={getAvatarUrl(activeParticipant?.avatarUrl)}
+                            name={activeDisplayName}
+                            size="sm"
+                          />
+                        )}
+
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 truncate">
+                            <span>{activeDisplayName}</span>
+                          </h3>
+                          <p className="text-[11px] text-muted truncate">
+                            {isActiveProject ? (
+                              <span className="flex items-center gap-1.5 text-muted">
+                                <Users className="w-3 h-3 text-[#EF4444]" />
+                                <span>Team Chat</span>
+                                {activeConvDetail?.participants && (
+                                  <span>• {activeConvDetail.participants.length} members</span>
+                                )}
+                              </span>
+                            ) : (
+                              <span>@{activeParticipant?.username || 'user'}</span>
+                            )}
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Right controls */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {activeConversation.type === 'DIRECT' && activeConversation.directParticipant?.username && (
-                    <Link
-                      href={`/developers/${activeConversation.directParticipant.username}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-foreground bg-surface hover:bg-surface-hover border border-border transition-colors"
-                    >
-                      <User className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Profile</span>
-                    </Link>
-                  )}
+                  {(() => {
+                    const isActiveProject = activeConversation.type === 'PROJECT' || activeConversation.conversationType === 'PROJECT';
+                    const activeParticipant = activeConversation.directParticipant || activeConversation.otherParticipant;
 
-                  {activeConversation.type === 'PROJECT' && activeConversation.project?.id && (
-                    <Link
-                      href={`/projects/${activeConversation.project.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-foreground bg-surface hover:bg-surface-hover border border-border transition-colors"
-                    >
-                      <FolderGit2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Project Details</span>
-                    </Link>
-                  )}
+                    return (
+                      <>
+                        {!isActiveProject && activeParticipant?.username && (
+                          <Link
+                            href={`/developers/${activeParticipant.username}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-foreground bg-surface hover:bg-surface-hover border border-border transition-colors"
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Profile</span>
+                          </Link>
+                        )}
+
+                        {isActiveProject && activeConversation.project?.id && (
+                          <Link
+                            href={`/projects/${activeConversation.project.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-foreground bg-surface hover:bg-surface-hover border border-border transition-colors"
+                          >
+                            <FolderGit2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Project Details</span>
+                          </Link>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -805,7 +831,8 @@ function MessagesContent() {
                     </div>
 
                     {messages.map((msg) => {
-                      const isMe = msg.sender.userId === user?.id;
+                      const msgSenderId = msg.sender.userId || msg.sender.id;
+                      const isMe = msgSenderId === user?.id;
                       const isSystem = msg.messageType === 'SYSTEM';
 
                       if (isSystem) {
@@ -828,7 +855,7 @@ function MessagesContent() {
                           {!isMe && (
                             <Avatar
                               src={getAvatarUrl(msg.sender.avatarUrl)}
-                              name={msg.sender.fullName || msg.sender.username}
+                              name={msg.sender.fullName || msg.sender.username || 'User'}
                               size="xs"
                             />
                           )}
@@ -842,7 +869,7 @@ function MessagesContent() {
                               msg.failed ? 'border-red-500 bg-red-500/20' : ''
                             }`}
                           >
-                            {!isMe && activeConversation.type === 'PROJECT' && (
+                            {!isMe && (activeConversation.type === 'PROJECT' || activeConversation.conversationType === 'PROJECT') && (
                               <p className="text-[11px] font-bold text-[#EF4444] mb-0.5">
                                 @{msg.sender.username}
                               </p>
@@ -906,9 +933,9 @@ function MessagesContent() {
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     placeholder={`Message ${
-                      activeConversation.type === 'PROJECT'
-                        ? activeConversation.project?.title || 'Team'
-                        : `@${activeConversation.directParticipant?.username || 'Developer'}`
+                      activeConversation.type === 'PROJECT' || activeConversation.conversationType === 'PROJECT'
+                        ? activeConversation.project?.title || activeConversation.name || 'Team'
+                        : `@${(activeConversation.directParticipant || activeConversation.otherParticipant)?.username || 'Developer'}`
                     }... (Enter to send, Shift+Enter for new line)`}
                     maxLength={4000}
                     className="w-full resize-none max-h-32 min-h-[42px] px-4 py-2.5 rounded-xl bg-surface border border-border text-xs sm:text-sm text-foreground placeholder:text-muted/60 focus:outline-none focus:border-[#EF4444] transition-colors"
@@ -1013,16 +1040,18 @@ function MessagesContent() {
 
 export default function MessagesPage() {
   return (
-    <Suspense
-      fallback={
-        <AppLayout requireAuth>
-          <div className="h-[calc(100vh-8.5rem)] flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
-          </div>
-        </AppLayout>
-      }
-    >
-      <MessagesContent />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense
+        fallback={
+          <AppLayout>
+            <div className="h-[calc(100vh-8.5rem)] flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
+            </div>
+          </AppLayout>
+        }
+      >
+        <MessagesContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

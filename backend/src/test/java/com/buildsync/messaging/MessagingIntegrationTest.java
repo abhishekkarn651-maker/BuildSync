@@ -568,4 +568,116 @@ public class MessagingIntegrationTest {
         assertThatThrownBy(() -> stompAuthChannelInterceptor.preSend(subscribeMsg, null))
                 .isInstanceOf(AccessDeniedException.class);
     }
+
+    @Test
+    @DisplayName("Direct conversation works between two registered accounts without developer profiles")
+    void directChat_BetweenUsersWithoutDeveloperProfile_Success() throws Exception {
+        Role userRole = roleRepository.findByName(RoleName.ROLE_USER.name()).orElseThrow();
+        String encodedPw = passwordEncoder.encode("Password123!");
+
+        // User A without profile
+        User userA = new User("User Alpha", "user_alpha", "alpha@test.com", encodedPw);
+        userA.setRoles(Collections.singleton(userRole));
+        userA = userRepository.save(userA);
+        String tokenA = jwtService.generateAccessToken(userA);
+
+        // User B without profile
+        User userB = new User("User Beta", "user_beta", "beta@test.com", encodedPw);
+        userB.setRoles(Collections.singleton(userRole));
+        userB = userRepository.save(userB);
+        String tokenB = jwtService.generateAccessToken(userB);
+
+        // Verify neither has a profile row in profileRepository
+        assertThat(profileRepository.findByUserId(userA.getId())).isEmpty();
+        assertThat(profileRepository.findByUserId(userB.getId())).isEmpty();
+
+        // User A initiates direct chat with user B
+        String createRes = mockMvc.perform(post("/api/v1/conversations/direct")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateDirectConversationRequest("user_beta"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.conversationType").value("DIRECT"))
+                .andExpect(jsonPath("$.type").value("DIRECT"))
+                .andExpect(jsonPath("$.otherParticipant.username").value("user_beta"))
+                .andExpect(jsonPath("$.otherParticipant.fullName").value("User Beta"))
+                .andExpect(jsonPath("$.otherParticipant.userId").value(userB.getId().toString()))
+                .andExpect(jsonPath("$.otherParticipant.id").value(userB.getId().toString()))
+                .andExpect(jsonPath("$.otherParticipant.avatarUrl").isEmpty())
+                .andExpect(jsonPath("$.directParticipant.username").value("user_beta"))
+                .andExpect(jsonPath("$.directParticipant.userId").value(userB.getId().toString()))
+                .andReturn().getResponse().getContentAsString();
+
+        String convId = objectMapper.readTree(createRes).get("id").asText();
+
+        // User A sends message to User B
+        mockMvc.perform(post("/api/v1/conversations/" + convId + "/messages")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SendMessagePayload("Hello Beta, direct chat works!"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.content").value("Hello Beta, direct chat works!"))
+                .andExpect(jsonPath("$.sender.userId").value(userA.getId().toString()))
+                .andExpect(jsonPath("$.sender.id").value(userA.getId().toString()))
+                .andExpect(jsonPath("$.sender.username").value("user_alpha"))
+                .andExpect(jsonPath("$.sender.avatarUrl").isEmpty());
+
+        // User B views message history
+        mockMvc.perform(get("/api/v1/conversations/" + convId + "/messages")
+                        .header("Authorization", "Bearer " + tokenB))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].content").value("Hello Beta, direct chat works!"))
+                .andExpect(jsonPath("$.content[0].sender.userId").value(userA.getId().toString()))
+                .andExpect(jsonPath("$.content[0].sender.id").value(userA.getId().toString()));
+
+        // User B sends reply
+        mockMvc.perform(post("/api/v1/conversations/" + convId + "/messages")
+                        .header("Authorization", "Bearer " + tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SendMessagePayload("Hey Alpha, confirmed!"))))
+                .andExpect(status().isCreated());
+
+        // User A refreshes page and fetches conversation list
+        mockMvc.perform(get("/api/v1/conversations")
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(convId))
+                .andExpect(jsonPath("$.content[0].conversationType").value("DIRECT"))
+                .andExpect(jsonPath("$.content[0].type").value("DIRECT"))
+                .andExpect(jsonPath("$.content[0].lastMessage.content").value("Hey Alpha, confirmed!"))
+                .andExpect(jsonPath("$.content[0].lastMessage.senderUsername").value("user_beta"))
+                .andExpect(jsonPath("$.content[0].unreadCount").value(1));
+
+        // User A views detail
+        mockMvc.perform(get("/api/v1/conversations/" + convId)
+                        .header("Authorization", "Bearer " + tokenA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.conversationType").value("DIRECT"))
+                .andExpect(jsonPath("$.type").value("DIRECT"))
+                .andExpect(jsonPath("$.participants.length()").value(2))
+                .andExpect(jsonPath("$.participants[0].userId").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Participant with blank or null full name falls back to username")
+    void participant_WithBlankFullName_FallsBackToUsername() throws Exception {
+        Role userRole = roleRepository.findByName(RoleName.ROLE_USER.name()).orElseThrow();
+        String encodedPw = passwordEncoder.encode("Password123!");
+
+        User noNameUser = new User("   ", "noname_dev", "noname@test.com", encodedPw);
+        noNameUser.setRoles(Collections.singleton(userRole));
+        noNameUser = userRepository.save(noNameUser);
+
+        mockMvc.perform(post("/api/v1/conversations/direct")
+                        .header("Authorization", "Bearer " + aliceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateDirectConversationRequest("noname_dev"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.otherParticipant.username").value("noname_dev"))
+                .andExpect(jsonPath("$.otherParticipant.fullName").value("noname_dev"))
+                .andExpect(jsonPath("$.directParticipant.fullName").value("noname_dev"));
+    }
 }

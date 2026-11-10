@@ -1,5 +1,6 @@
 import { API_CONFIG } from '@/config/api.config';
 import { tokenStore } from './token-store';
+import { AuthResponse } from '@/types/auth.types';
 
 export interface ApiClientOptions extends RequestInit {
   skipAuth?: boolean;
@@ -32,12 +33,13 @@ export class RateLimitError extends ApiError {
 }
 
 // Single-flight shared refresh promise for deduplication
-let activeRefreshPromise: Promise<string | null> | null = null;
+let activeRefreshPromise: Promise<AuthResponse | null> | null = null;
 
 /**
  * Deduplicated token refresher to avoid concurrent token rotation collisions.
+ * Both AuthContext session initialization and apiClient 401 retry share this single flight.
  */
-export async function performSilentRefresh(): Promise<string | null> {
+export async function performSilentRefresh(): Promise<AuthResponse | null> {
   if (activeRefreshPromise) {
     return activeRefreshPromise;
   }
@@ -62,10 +64,10 @@ export async function performSilentRefresh(): Promise<string | null> {
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as AuthResponse;
       if (data && data.accessToken) {
         tokenStore.setAccessToken(data.accessToken);
-        return data.accessToken as string;
+        return data;
       }
 
       tokenStore.clearAccessToken();
@@ -126,17 +128,17 @@ export async function apiClient<T>(
 
     clearTimeout(timeoutId);
 
-    // Automatic 401 retry with silent token refresh for protected resources
+    // Automatic 401 retry with silent token refresh for protected resources (at most once)
     if (response.status === 401 && !isAuthEndpoint && !options.skipRefreshRetry) {
-      const newAccessToken = await performSilentRefresh();
-      if (newAccessToken) {
-        // Retry original request with newly refreshed access token
+      const refreshedAuth = await performSilentRefresh();
+      if (refreshedAuth && refreshedAuth.accessToken) {
+        // Retry original request at most once with newly refreshed access token
         return apiClient<T>(endpoint, {
           ...options,
           skipRefreshRetry: true,
           headers: {
             ...headers,
-            'Authorization': `Bearer ${newAccessToken}`,
+            'Authorization': `Bearer ${refreshedAuth.accessToken}`,
           },
         });
       }
